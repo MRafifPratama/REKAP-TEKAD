@@ -1,6 +1,8 @@
 import { RegionFields } from "./RegionFields.jsx";
 import React, { useState, useEffect } from "react";
 import {
+  Eye,
+  EyeOff,
   Building2,
   ArrowUpRight,
   ShieldCheck,
@@ -79,6 +81,7 @@ function ProfileFields({ value, onChange }) {
 }
 function Auth({ onLogin }) {
   const [register, setRegister] = useState(false),
+    [showPassword, setShowPassword] = useState(false),
     [form, setForm] = useState({ ...emptyProfile, password: "" }),
     [error, setError] = useState(""),
     [success, setSuccess] = useState(""),
@@ -91,6 +94,7 @@ function Auth({ onLogin }) {
       if (register) {
         await api("/auth/register", { method: "POST", body: form });
         setRegister(false);
+        setShowPassword(false);
         setSuccess(
           "Registrasi berhasil. Akun Anda langsung aktif. Silakan masuk.",
         );
@@ -167,14 +171,39 @@ function Auth({ onLogin }) {
                 autoComplete="username"
               />
             )}
-            <Field
-              label="Password"
-              type="password"
-              value={form.password}
-              onChange={(v) => setForm({ ...form, password: v })}
-              minLength={register ? 12 : 1}
-              autoComplete={register ? "new-password" : "current-password"}
-            />
+            <div className="field">
+              <label htmlFor="auth-password">Password</label>
+              <div className="password-input">
+                <input
+                  id="auth-password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  required
+                  minLength={register ? 12 : 1}
+                  autoComplete={register ? "new-password" : "current-password"}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  aria-label={
+                    showPassword ? "Sembunyikan password" : "Tampilkan password"
+                  }
+                  aria-pressed={showPassword}
+                  aria-controls="auth-password"
+                  onClick={() => setShowPassword((shown) => !shown)}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} aria-hidden="true" />
+                  ) : (
+                    <Eye size={20} aria-hidden="true" />
+                  )}
+                </button>
+              </div>
+            </div>
             {register && (
               <p className="wide hint">
                 Minimal 12 karakter, mengandung huruf besar, huruf kecil, dan
@@ -195,6 +224,7 @@ function Auth({ onLogin }) {
             <button
               onClick={() => {
                 setRegister(!register);
+                setShowPassword(false);
                 setError("");
                 setSuccess("");
               }}
@@ -536,7 +566,7 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
       <h3 className="attachment-heading">Dokumentasi & bukti penerimaan</h3>
       <p className="hint">
         PNG / JPG / JPEG untuk foto. Bukti penerimaan hanya PDF. Maksimal 2 MB
-        per berkas.
+        per berkas; dikompres otomatis hingga maksimal 1 MB sebelum disimpan.
       </p>
       {err && <div className="alert error">{err}</div>}
       <div className="file-list">

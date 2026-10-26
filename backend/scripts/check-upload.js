@@ -1,6 +1,8 @@
 // Uploads only generated test fixtures. All files created by this check are removed.
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import sharp from "sharp";
+import { PDFDocument } from "pdf-lib";
+import { randomBytes, randomUUID } from "node:crypto";
 const base = "http://127.0.0.1:8000/api",
   origin = "http://127.0.0.1:8000";
 const created = [];
@@ -32,29 +34,6 @@ function form(kind, bytes, mime, name) {
   data.append("file", new Blob([bytes], { type: mime }), name);
   return data;
 }
-function testPdf() {
-  let pdf = "%PDF-1.4\n";
-  const offsets = [0];
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
-    "<< /Length 0 >>\nstream\n\nendstream",
-  ];
-  objects.forEach((obj, i) => {
-    offsets.push(Buffer.byteLength(pdf));
-    pdf += `${i + 1} 0 obj\n${obj}\nendobj\n`;
-  });
-  const xref = Buffer.byteLength(pdf);
-  pdf +=
-    "xref\n0 5\n0000000000 65535 f \n" +
-    offsets
-      .slice(1)
-      .map((n) => String(n).padStart(10, "0") + " 00000 n \n")
-      .join("") +
-    `trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(pdf);
-}
 try {
   assert.equal(
     (await request("/health", { session: "" })).value.storage,
@@ -70,10 +49,20 @@ try {
   const { value: mine } = await request("/records/mine");
   assert.ok(mine.record, "Akun demo memerlukan data BUMDes tersimpan.");
   recordId = mine.record.id;
-  const png = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ioAAAAASUVORK5CYII=",
-    "base64",
-  );
+  const png = await sharp(randomBytes(800 * 650 * 3), {
+    raw: { width: 800, height: 650, channels: 3 },
+  })
+    .png()
+    .toBuffer();
+  const pdf = await PDFDocument.create();
+  const jpg = await sharp(randomBytes(1200 * 1000 * 3), {
+    raw: { width: 1200, height: 1000, channels: 3 },
+  })
+    .jpeg({ quality: 95 })
+    .toBuffer();
+  const image = await pdf.embedJpg(jpg);
+  pdf.addPage().drawImage(image, { x: 20, y: 50, width: 400, height: 333 });
+  const pdfBytes = Buffer.from(await pdf.save());
   const fixtures = [
     {
       kind: "building",
@@ -85,7 +74,7 @@ try {
       kind: "proof",
       mime: "application/pdf",
       name: "uji-r2-" + randomUUID() + ".pdf",
-      bytes: testPdf(),
+      bytes: pdfBytes,
     },
   ];
   for (const f of fixtures) {
@@ -110,7 +99,14 @@ try {
     });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), f.mime);
-    assert.deepEqual(Buffer.from(await response.arrayBuffer()), f.bytes);
+    const stored = Buffer.from(await response.arrayBuffer());
+    assert.ok(
+      f.bytes.length > 1024 * 1024 && f.bytes.length <= 2 * 1024 * 1024,
+    );
+    assert.ok(stored.length <= 1024 * 1024);
+    if (f.kind === "proof")
+      assert.equal((await PDFDocument.load(stored)).getPageCount(), 1);
+    else assert.equal((await sharp(stored).metadata()).format, "png");
   }
   otherCookie = (
     await request("/auth/login", {
@@ -152,7 +148,7 @@ try {
         imageUpload: true,
         pdfUpload: true,
         metadataSaved: true,
-        signedDownloadBytesMatch: true,
+        compressedObjectsUnder1MB: true,
         otherUserAccessRejected: true,
         invalidFileRejected: true,
         temporaryFilesRemoved: true,

@@ -109,3 +109,9 @@ API `GET /api/records/mine` mengembalikan formulir tetap pengguna. Pembuatan per
 Untuk data lama yang terlanjur ganda, entri dengan ID paling awal menjadi formulir tetap pengguna. Data tambahan tidak dihapus dan tetap tersedia bagi admin. Endpoint pengguna hanya mengembalikan formulir utama; penyuntingan dan akses lampiran entri tambahan ditolak. Layar pengguna menampilkan pemberitahuan jumlah data tambahan agar penanganannya tidak tersembunyi.
 
 Paket contoh untuk impor baru sudah disesuaikan: masing-masing petugas aktif mempunyai satu data; contoh tambahan dikelola admin. Impor ulang tidak memindahkan pemilik atau menggandakan data contoh yang sudah ada. Tidak diperlukan perubahan skema/impor ulang untuk menerapkan pembatasan backend ini.
+
+## Kompresi lampiran
+
+Unggahan maksimal 2 MB; backend memproses foto memakai Sharp dan PDF memakai Ghostscript sebelum mengirim ke R2. Hasil yang disimpan maksimal 1 MB (1.048.576 byte). Foto mempertahankan format PNG/JPEG; PDF tetap PDF dan jumlah halaman diperiksa. Berkas yang sudah kecil tidak diperbesar. Jika target tidak tercapai atau berkas rusak/terkunci, permintaan ditolak sebelum penyimpanan. Lampiran lama tidak diubah. Kompresi dapat mengurangi kualitas gambar; periksa keterbacaan hasil unduhan.
+
+Ghostscript harus tersedia pada PATH backend (`gs`), atau atur `GHOSTSCRIPT_PATH` ke executable Ghostscript. Di komputer ini executable tersedia di `/usr/local/bin/gs`. Direktori sementara privat dibersihkan setelah proses, batas waktu 20 detik per percobaan, maksimal dua proses unggahan bersamaan.

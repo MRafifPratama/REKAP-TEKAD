@@ -120,7 +120,8 @@ export default function UserRecordPage({
               <p className="hint">
                 Pilih lampiran sekarang. Berkas akan diunggah saat Anda menekan
                 Simpan data BUMDes. Foto: PNG/JPG/JPEG. Bukti penerimaan: PDF.
-                Maksimal 2 MB per berkas.
+                Maksimal unggahan 2 MB per berkas; dikompres otomatis hingga
+                maksimal 1 MB sebelum disimpan.
               </p>
               {[
                 ["organization", "Foto bagan pengurus"],

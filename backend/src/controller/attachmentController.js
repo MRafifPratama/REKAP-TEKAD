@@ -1,3 +1,4 @@
+import { compressUpload } from "../utils/compressUpload.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import {
@@ -43,12 +44,13 @@ export const upload = async (req, res) => {
     key = `assets/${mime === "application/pdf" ? "documents" : "images"}/${req.params.id}/${id}`;
   await transaction(async (c) => {
     await owned(c, req.params.id, req.user);
+    const compressed = await compressUpload(b, mime);
     const client = s3();
     await client.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: b,
+        Body: compressed,
         ContentType: mime,
       }),
     );
@@ -60,6 +62,8 @@ export const upload = async (req, res) => {
       await audit(c, req.user.id, "Unggah lampiran", "bumdes", req.params.id, {
         filename: f.originalname,
         kind,
+        originalBytes: b.length,
+        storedBytes: compressed.length,
       });
     } catch (e) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));

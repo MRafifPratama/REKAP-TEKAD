@@ -1,0 +1,59 @@
+-- Rekap TEKAD: impor pada database u420903862_rekap_tekad yang sudah tersedia.
+-- Tidak membuat/menghapus database. Tidak menghapus data yang sudah ada.
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+USE `u420903862_rekap_tekad`;
+
+CREATE TABLE IF NOT EXISTS wilayah (
+ kode VARCHAR(13) NOT NULL PRIMARY KEY,
+ nama VARCHAR(100) NOT NULL,
+ INDEX wilayah_name_idx (nama)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS users (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ username VARCHAR(40) NOT NULL UNIQUE,
+ email VARCHAR(255) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('admin','user') NOT NULL DEFAULT 'user',
+ active BOOLEAN NOT NULL DEFAULT TRUE,
+ deleted_at DATETIME NULL,
+ profile JSON NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sessions (
+ token_hash CHAR(64) PRIMARY KEY,
+ user_id INT UNSIGNED NOT NULL,
+ expires_at DATETIME NOT NULL,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ INDEX(expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS records (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id INT UNSIGNED NOT NULL,
+ data JSON NOT NULL,
+ version INT NOT NULL DEFAULT 1,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id), INDEX(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS attachments (
+ id CHAR(36) PRIMARY KEY,
+ record_id INT UNSIGNED NOT NULL,
+ kind ENUM('organization','building','proof') NOT NULL,
+ object_key VARCHAR(512) NOT NULL,
+ filename VARCHAR(255) NOT NULL,
+ mime VARCHAR(100) NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(record_id) REFERENCES records(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS activity_logs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id INT UNSIGNED NOT NULL,
+ action VARCHAR(80) NOT NULL,
+ entity VARCHAR(80) NOT NULL,
+ entity_id VARCHAR(80) NOT NULL,
+ changes JSON NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX(user_id), FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
