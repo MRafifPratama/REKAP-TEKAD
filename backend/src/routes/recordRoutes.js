@@ -1,0 +1,15 @@
+import { validateId } from "../middleware/validateId.js";
+import { Router } from "express";
+import * as record from "../controller/recordController.js";
+import * as attachment from "../controller/attachmentController.js";
+import { upload } from "../middleware/upload.js";
+const router = Router();
+router.param("id", validateId);
+router.get("/", record.list);
+router.get("/mine", record.mine);
+router.post("/", record.create);
+router.put("/:id", record.update);
+router.delete("/:id", record.remove);
+router.get("/:id/files", attachment.list);
+router.post("/:id/files", upload.single("file"), attachment.upload);
+export default router;

@@ -1,0 +1,10 @@
+import { validateId } from "../middleware/validateId.js";
+import { Router } from "express";
+import * as user from "../controller/userController.js";
+const router = Router();
+router.param("id", validateId);
+router.get("/", user.list);
+router.post("/", user.create);
+router.put("/:id", user.update);
+router.delete("/:id", user.remove);
+export default router;

@@ -1,0 +1,23 @@
+{
+  "name": "rekap-tekad",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "test": "npm run test --workspaces --if-present",
+    "db:check": "npm run db:check --workspace backend",
+    "db:export": "npm run db:export --workspace backend",
+    "format": "prettier --write \"backend/src/**/*.js\" \"backend/scripts/*.js\" \"backend/tests/*.js\" \"frontend/src/**/*.{js,jsx,css}\" frontend/vite.config.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "prettier": "^3.9.10"
+  }
+}

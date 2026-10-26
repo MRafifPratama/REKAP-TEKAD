@@ -1,0 +1,53 @@
+export const money = (n) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(n || 0);
+export const emptyProfile = {
+  provinceCode: "",
+  regencyCode: "",
+  districtCode: "",
+  villageCode: "",
+  username: "",
+  fullName: "",
+  email: "",
+  phone: "",
+  address: "",
+  province: "",
+  regency: "",
+  district: "",
+  village: "",
+};
+export const emptyRecord = {
+  provinceCode: "",
+  regencyCode: "",
+  districtCode: "",
+  villageCode: "",
+  province: "",
+  regency: "",
+  district: "",
+  village: "",
+  name: "",
+  address: "",
+  contactName: "",
+  contactEmail: "",
+  contactPhone: "",
+  management: "",
+  location: "",
+  products: "",
+  received: false,
+  receivedDate: "",
+  amount: 0,
+};
+export const profileLabels = {
+  username: "Username",
+  fullName: "Nama lengkap",
+  email: "Email",
+  phone: "Nomor handphone",
+  address: "Alamat",
+  province: "Provinsi",
+  regency: "Kabupaten / kota",
+  district: "Kecamatan",
+  village: "Desa / kelurahan",
+};
