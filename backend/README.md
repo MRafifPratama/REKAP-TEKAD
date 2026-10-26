@@ -5,7 +5,7 @@ Express berjalan di `127.0.0.1:3000`. Konfigurasi dibaca dari `backend/.env` ber
 ```text
 backend/
   src/
-    config/       # environment, pool MariaDB/MySQL, R2
+    config/       # environment, pool MariaDB/MySQL, penyimpanan lokal
     model/        # kueri SQL dan akses data
     middleware/   # autentikasi, peran, Origin, validasi ID, upload, error
     routes/       # pemetaan endpoint ke controller
@@ -24,3 +24,7 @@ Dari folder root gunakan `npm run dev:backend`, `npm run db:check`, atau `npm te
 Skrip lama pemasangan database disimpan di `scripts/legacy` untuk mempertahankan berkas sebelumnya, tidak digunakan oleh perintah menjalankan aplikasi. MySQL yang digunakan adalah layanan XAMPP Anda.
 
 Pengujian login melalui proxy frontend tersedia pada `node backend/scripts/check-login.js` dari root proyek. Skrip itu memakai akun demo dan membuat log login/logout, tanpa mengubah profil/data bantuan. Ia memeriksa cookie sesi, penolakan akun nonaktif, pemisahan data dan akses admin.
+
+## Lampiran lokal
+
+Folder privat `storage/uploads/assets/images` dan `storage/uploads/assets/documents` dibuat otomatis. Konfigurasi `STORAGE_DIR` relatif terhadap backend atau path absolut disk persisten. Unduhan tetap melalui API dengan autentikasi; jangan expose folder ini sebagai static/public. Schema database tidak berubah. Untuk lampiran R2 lama, salin objek ke folder uploads dengan object key yang sama. Cadangkan database beserta folder ini. Kompresi PDF tetap memerlukan Ghostscript.

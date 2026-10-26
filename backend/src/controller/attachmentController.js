@@ -1,13 +1,7 @@
 import { compressUpload } from "../utils/compressUpload.js";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import {
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { s3, bucket } from "../config/r2.js";
+import { localStorage } from "../utils/localStorage.js";
 import { transaction } from "../utils/transaction.js";
 import { audit } from "../utils/audit.js";
 import { owned } from "../utils/recordAccess.js";
@@ -42,19 +36,13 @@ export const upload = async (req, res) => {
     });
   const id = randomUUID(),
     key = `assets/${mime === "application/pdf" ? "documents" : "images"}/${req.params.id}/${id}`;
-  await transaction(async (c) => {
-    await owned(c, req.params.id, req.user);
-    const compressed = await compressUpload(b, mime);
-    const client = s3();
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: compressed,
-        ContentType: mime,
-      }),
-    );
-    try {
+  let written = false;
+  try {
+    await transaction(async (c) => {
+      await owned(c, req.params.id, req.user);
+      const compressed = await compressUpload(b, mime);
+      await localStorage.put(key, compressed);
+      written = true;
       await AttachmentModel.create(
         [id, req.params.id, kind, key, f.originalname.slice(0, 255), mime],
         c,
@@ -65,11 +53,11 @@ export const upload = async (req, res) => {
         originalBytes: b.length,
         storedBytes: compressed.length,
       });
-    } catch (e) {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-      throw e;
-    }
-  });
+    });
+  } catch (error) {
+    if (written) await localStorage.remove(key);
+    throw error;
+  }
   res.status(201).json({ id });
 };
 export const download = async (req, res) => {
@@ -82,17 +70,13 @@ export const download = async (req, res) => {
     return res.status(404).json({ message: "Berkas tidak ditemukan" });
   const f = files[0];
   await transaction((c) => owned(c, f.record_id, req.user));
-  res.json({
-    url: await getSignedUrl(
-      s3(),
-      new GetObjectCommand({
-        Bucket: bucket,
-        Key: f.object_key,
-        ResponseContentDisposition: "attachment",
-      }),
-      { expiresIn: 60 },
-    ),
-  });
+  const body = await localStorage.get(f.object_key);
+  if (!req.params.content) {
+    return res.json({ url: `/api/files/${f.id}/content` });
+  }
+  res.set("Cache-Control", "private, no-store");
+  res.attachment(f.filename);
+  res.type(f.mime).send(body);
 };
 export const remove = async (req, res) => {
   await transaction(async (c) => {
@@ -101,9 +85,7 @@ export const remove = async (req, res) => {
       throw Object.assign(new Error("Berkas tidak ditemukan"), { status: 404 });
     const f = files[0];
     await owned(c, f.record_id, req.user);
-    await s3().send(
-      new DeleteObjectCommand({ Bucket: bucket, Key: f.object_key }),
-    );
+    await localStorage.remove(f.object_key);
     await AttachmentModel.remove([f.id], c);
     await audit(c, req.user.id, "Hapus lampiran", "bumdes", f.record_id, {
       filename: f.filename,

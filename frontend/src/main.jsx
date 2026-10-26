@@ -480,7 +480,7 @@ function App() {
             <div className="setup-note">
               <ShieldCheck size={17} />{" "}
               {user.role === "admin"
-                ? "Penyimpanan R2 belum terhubung. Lengkapi kredensial di konfigurasi server untuk mengunggah lampiran."
+                ? "Penyimpanan server belum tersedia. Periksa lokasi folder dan izin tulis backend untuk mengunggah lampiran."
                 : "Unggahan lampiran belum tersedia. Hubungi admin untuk mengaktifkan penyimpanan dokumen."}
             </div>
           )}

@@ -1,6 +1,6 @@
 # Rekap TEKAD 2026
 
-Aplikasi React + Express untuk pendataan bantuan TEKAD, menggunakan MySQL/MariaDB XAMPP Anda dan Cloudflare R2.
+Aplikasi React + Express untuk pendataan bantuan TEKAD, menggunakan MySQL/MariaDB XAMPP Anda dan penyimpanan berkas lokal server.
 
 ## Struktur proyek
 
@@ -16,7 +16,7 @@ RekapTEKAD/
       model/           # kueri SQL dan akses data
       middleware/      # autentikasi, peran admin, validasi, upload, error
       routes/          # endpoint API
-      config/          # .env, database, R2
+      config/          # .env, database, penyimpanan lokal
       utils/           # transaksi, audit, validasi, JSON, hierarki wilayah
       controller/      # alur permintaan dan respons
       app.js
@@ -75,20 +75,26 @@ Profil dan BUMDes menggunakan pilihan wilayah bertingkat dengan validasi kode/hi
 
 Dashboard/grafik memakai data database, tersedia filter dan ekspor CSV. Log menampilkan 500 aktivitas terbaru; seluruh riwayat tetap disimpan. Request mutasi memeriksa Origin localhost yang diizinkan dan akses dibatasi menurut akun. Batas request, Helmet, validasi server dan batas upload juga diterapkan.
 
-## Cloudflare R2
+## Penyimpanan lokal server
 
-Isi `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET=rekap-tekad` pada `backend/.env`. Kredensial hanya berada di backend. Gunakan token Object Read & Write terbatas ke bucket privat tersebut.
+Lampiran disimpan secara privat di `backend/storage/uploads/`:
 
-- JPEG/PNG disimpan di `assets/images/<record-id>/<uuid>`.
-- PDF disimpan di `assets/documents/<record-id>/<uuid>`.
-- Foto bagan/bangunan: PNG/JPG/JPEG. Bukti penerimaan: hanya PDF, maksimal 2 MB per berkas untuk semua jenis lampiran.
-- Pengguna baru dapat memilih foto bagan, foto bangunan, dan bukti penerimaan langsung di formulir. Tombol Simpan menyimpan BUMDes lalu mengunggah lampiran. Setelah tersimpan, lampiran dapat dikelola pada bagian dokumentasi atau detail data admin. Jika unggahan gagal, data BUMDes tetap tersimpan dan berkas yang belum berhasil dapat dicoba kembali. Backend memeriksa kepemilikan dan signature berkas.
-- Unduhan menggunakan URL bertanda tangan yang berlaku 60 detik setelah pemeriksaan akses.
-- Hapus lampiran sebelum menghapus data BUMDes.
+```text
+backend/
+  src/config/storage.js
+  src/utils/localStorage.js
+  storage/uploads/assets/
+    images/<record-id>/<uuid>
+    documents/<record-id>/<uuid>
+```
 
-Integrasi bucket `rekap-tekad` telah diuji pada 24 Oktober 2026: unggah PNG/PDF, penyimpanan metadata, kecocokan isi unduhan, penolakan akses akun lain, penolakan berkas tidak valid, dan penghapusan berkas uji berhasil. Setelah mengubah konfigurasi `.env`, mulai ulang backend.
+Atur `STORAGE_DIR=storage/uploads` pada environment backend, atau gunakan path absolut ke disk persisten server. Path relatif dihitung dari folder backend. Folder dibuat otomatis; pengguna proses Node harus memiliki izin baca/tulis. Berkas unggahan diabaikan Git dan tidak disertakan build frontend. Jangan letakkan folder ini pada public/public_html atau menyajikannya lewat static hosting.
 
-Untuk mengulang pemeriksaan, jalankan `node backend/scripts/check-upload.js` saat aplikasi aktif. Skrip memakai akun demo, mengunggah berkas buatan, lalu menghapusnya kembali; log aktivitas pengujian tetap tersimpan. Database/R2 bukan satu transaksi lintas layanan; sesuaikan strategi cadangan dan pemeriksaan objek yatim untuk penggunaan operasional.
+Foto hanya PNG/JPG/JPEG; bukti penerimaan hanya PDF. Unggahan maksimal 2 MB dan hasil kompresi maksimal 1 MB. Endpoint `/api/files/:id` memberikan URL unduhan lokal `/api/files/:id/content`; kedua endpoint memeriksa sesi dan kepemilikan/admin. URL tidak memberi akses tanpa login. Nama asli dipertahankan saat unduh, sedangkan nama di disk berupa UUID.
+
+Kredensial R2 tidak digunakan lagi. Tidak diperlukan perubahan schema SQL; kolom `object_key` tetap menyimpan path relatif. Lampiran yang sebelumnya diunggah ke R2 **belum dipindahkan otomatis**. Salin objek `assets/images/...` dan `assets/documents/...` dari bucket lama ke `backend/storage/uploads/assets/...` dengan key yang sama, tanpa mengubah isi metadata tabel `attachments`. Uji unduhan sebelum menghapus salinan R2. Jika belum disalin, aplikasi menampilkan berkas tidak ditemukan. Untuk server lain, pindahkan database dan folder uploads bersama-sama. Sertakan keduanya dalam cadangan, dan gunakan volume persisten ketika deploy ulang.
+
+Pemeriksaan melalui `node backend/scripts/check-upload.js` menggunakan akun demo dan berkas buatan, menguji kompresi, unggah, unduh, akses antar akun dan tanpa login, lalu membersihkan berkas uji; log pengujian tetap disimpan. Skrip memerlukan aplikasi dan database aktif serta akun demo yang sesuai.
 
 ## Pemeriksaan
 
@@ -112,6 +118,6 @@ Paket contoh untuk impor baru sudah disesuaikan: masing-masing petugas aktif mem
 
 ## Kompresi lampiran
 
-Unggahan maksimal 2 MB; backend memproses foto memakai Sharp dan PDF memakai Ghostscript sebelum mengirim ke R2. Hasil yang disimpan maksimal 1 MB (1.048.576 byte). Foto mempertahankan format PNG/JPEG; PDF tetap PDF dan jumlah halaman diperiksa. Berkas yang sudah kecil tidak diperbesar. Jika target tidak tercapai atau berkas rusak/terkunci, permintaan ditolak sebelum penyimpanan. Lampiran lama tidak diubah. Kompresi dapat mengurangi kualitas gambar; periksa keterbacaan hasil unduhan.
+Unggahan maksimal 2 MB; backend memproses foto memakai Sharp dan PDF memakai Ghostscript sebelum menulis ke penyimpanan lokal. Hasil yang disimpan maksimal 1 MB (1.048.576 byte). Foto mempertahankan format PNG/JPEG; PDF tetap PDF dan jumlah halaman diperiksa. Berkas yang sudah kecil tidak diperbesar. Jika target tidak tercapai atau berkas rusak/terkunci, permintaan ditolak sebelum penyimpanan. Lampiran lama tidak diubah. Kompresi dapat mengurangi kualitas gambar; periksa keterbacaan hasil unduhan.
 
 Ghostscript harus tersedia pada PATH backend (`gs`), atau atur `GHOSTSCRIPT_PATH` ke executable Ghostscript. Di komputer ini executable tersedia di `/usr/local/bin/gs`. Direktori sementara privat dibersihkan setelah proses, batas waktu 20 detik per percobaan, maksimal dua proses unggahan bersamaan.

@@ -5,3 +5,12 @@ dist/
 !.env.example
 backend/storage/
 *.log
+!backend/storage/
+backend/storage/*
+!backend/storage/uploads/
+backend/storage/uploads/**
+!backend/storage/uploads/assets/
+!backend/storage/uploads/assets/images/
+!backend/storage/uploads/assets/documents/
+!backend/storage/uploads/assets/images/.gitkeep
+!backend/storage/uploads/assets/documents/.gitkeep

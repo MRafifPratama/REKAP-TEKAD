@@ -1,12 +1,12 @@
+import { localStorage } from "../utils/localStorage.js";
 import * as SystemModel from "../model/SystemModel.js";
 export const status = async (req, res) => {
   await SystemModel.ping([]);
-  res.json({
-    database: "connected",
-    storage: !!(
-      process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY
-    ),
-  });
+  let storage = true;
+  try {
+    await localStorage.ready();
+  } catch {
+    storage = false;
+  }
+  res.json({ database: "connected", storage, storageProvider: "local" });
 };

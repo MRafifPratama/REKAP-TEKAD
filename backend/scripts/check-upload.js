@@ -38,7 +38,7 @@ try {
   assert.equal(
     (await request("/health", { session: "" })).value.storage,
     true,
-    "Backend belum memuat konfigurasi R2. Jalankan ulang backend.",
+    "Penyimpanan lokal belum tersedia. Periksa izin folder backend.",
   );
   const login = await request("/auth/login", {
     method: "POST",
@@ -67,13 +67,13 @@ try {
     {
       kind: "building",
       mime: "image/png",
-      name: "uji-r2-" + randomUUID() + ".png",
+      name: "uji-local-" + randomUUID() + ".png",
       bytes: png,
     },
     {
       kind: "proof",
       mime: "application/pdf",
-      name: "uji-r2-" + randomUUID() + ".pdf",
+      name: "uji-local-" + randomUUID() + ".pdf",
       bytes: pdfBytes,
     },
   ];
@@ -94,7 +94,8 @@ try {
       ),
     );
     const { value: signed } = await request("/files/" + upload.id);
-    const response = await fetch(signed.url, {
+    const response = await fetch(new URL(signed.url, origin), {
+      headers: { Cookie: cookie },
       signal: AbortSignal.timeout(60000),
     });
     assert.equal(response.status, 200);
@@ -118,6 +119,14 @@ try {
   await request("/files/" + created[0], {
     session: otherCookie,
     expected: 404,
+  });
+  await request("/files/" + created[0] + "/content", {
+    session: otherCookie,
+    expected: 404,
+  });
+  await request("/files/" + created[0] + "/content", {
+    session: "",
+    expected: 401,
   });
   await request("/records/" + recordId + "/files", {
     method: "POST",
@@ -144,7 +153,7 @@ try {
     JSON.stringify(
       {
         result: "PASS",
-        bucket: "rekap-tekad",
+        storageProvider: "local",
         imageUpload: true,
         pdfUpload: true,
         metadataSaved: true,
@@ -166,7 +175,7 @@ try {
       await request("/files/" + id, { method: "DELETE" });
     } catch {
       console.error(
-        "Lampiran uji belum dapat dibersihkan; periksa berkas berawalan uji-r2 pada BUMDes akun demo.",
+        "Lampiran uji belum dapat dibersihkan; periksa berkas berawalan uji-local pada BUMDes akun demo.",
       );
       process.exitCode = 1;
     }
