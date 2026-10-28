@@ -121,3 +121,16 @@ Paket contoh untuk impor baru sudah disesuaikan: masing-masing petugas aktif mem
 Unggahan maksimal 2 MB; backend memproses foto memakai Sharp dan PDF memakai Ghostscript sebelum menulis ke penyimpanan lokal. Hasil yang disimpan maksimal 1 MB (1.048.576 byte). Foto mempertahankan format PNG/JPEG; PDF tetap PDF dan jumlah halaman diperiksa. Berkas yang sudah kecil tidak diperbesar. Jika target tidak tercapai atau berkas rusak/terkunci, permintaan ditolak sebelum penyimpanan. Lampiran lama tidak diubah. Kompresi dapat mengurangi kualitas gambar; periksa keterbacaan hasil unduhan.
 
 Ghostscript harus tersedia pada PATH backend (`gs`), atau atur `GHOSTSCRIPT_PATH` ke executable Ghostscript. Di komputer ini executable tersedia di `/usr/local/bin/gs`. Direktori sementara privat dibersihkan setelah proses, batas waktu 20 detik per percobaan, maksimal dua proses unggahan bersamaan.
+
+## Deployment frontend + backend pada satu domain
+
+Jalankan build dari **root repository**, bukan hanya folder backend:
+
+- Install: `npm ci` (sertakan devDependencies saat build).
+- Build: `npm run build` → menghasilkan `frontend/dist`.
+- Start: `npm start` → Express menyajikan frontend dan `/api` pada satu port.
+- Startup file jika diminta panel: `backend/src/server.js`.
+
+Pastikan hasil build `frontend/dist` ikut tersedia pada runtime. Set environment production melalui panel hosting: `NODE_ENV=production`, `FRONTEND_ORIGINS=https://pusdaing.id` (tambahkan origin www dipisahkan koma jika dipakai), dan kredensial database Hostinger. Gunakan PORT yang disediakan hosting; jangan memaksakan 3000 pada production. Development tetap menggunakan port 8000/3000. Konfigurasi HOST default production adalah 0.0.0.0, development 127.0.0.1.
+
+Jika halaman utama menampilkan JSON “Endpoint tidak ditemukan”, versi backend yang berjalan belum menyajikan build frontend. Deploy ulang commit perbaikan dengan konfigurasi di atas. Jika muncul “Frontend belum dibangun”, periksa build command/root directory dan keberadaan `frontend/dist/index.html`. Tidak perlu impor ulang database.
