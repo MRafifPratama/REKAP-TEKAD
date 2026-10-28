@@ -15,7 +15,8 @@
     "db:check": "npm run db:check --workspace backend",
     "db:export": "npm run db:export --workspace backend",
     "format": "prettier --write \"backend/src/**/*.js\" \"backend/scripts/*.js\" \"backend/tests/*.js\" \"frontend/src/**/*.{js,jsx,css}\" frontend/vite.config.js",
-    "start": "node backend/src/server.js"
+    "start": "node backend/src/server.js",
+    "postinstall": "npm run build"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

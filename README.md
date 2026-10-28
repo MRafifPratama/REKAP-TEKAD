@@ -126,11 +126,15 @@ Ghostscript harus tersedia pada PATH backend (`gs`), atau atur `GHOSTSCRIPT_PATH
 
 Jalankan build dari **root repository**, bukan hanya folder backend:
 
-- Install: `npm ci` (sertakan devDependencies saat build).
-- Build: `npm run build` → menghasilkan `frontend/dist`.
+- Install: `npm ci` atau `npm install`. Script `postinstall` otomatis menjalankan build frontend, termasuk jika menggunakan `--omit=dev`.
+- Build eksplisit (opsional jika postinstall sudah berjalan): `npm run build` → menghasilkan `frontend/dist`.
 - Start: `npm start` → Express menyajikan frontend dan `/api` pada satu port.
 - Startup file jika diminta panel: `backend/src/server.js`.
 
 Pastikan hasil build `frontend/dist` ikut tersedia pada runtime. Set environment production melalui panel hosting: `NODE_ENV=production`, `FRONTEND_ORIGINS=https://pusdaing.id` (tambahkan origin www dipisahkan koma jika dipakai), dan kredensial database Hostinger. Gunakan PORT yang disediakan hosting; jangan memaksakan 3000 pada production. Development tetap menggunakan port 8000/3000. Konfigurasi HOST default production adalah 0.0.0.0, development 127.0.0.1.
 
 Jika halaman utama menampilkan JSON “Endpoint tidak ditemukan”, versi backend yang berjalan belum menyajikan build frontend. Deploy ulang commit perbaikan dengan konfigurasi di atas. Jika muncul “Frontend belum dibangun”, periksa build command/root directory dan keberadaan `frontend/dist/index.html`. Tidak perlu impor ulang database.
+
+### Hostinger Express tanpa kolom build command
+
+Root `package.json` memiliki `postinstall: npm run build`, sehingga langkah `npm install` pada deployment juga menghasilkan `frontend/dist` sebelum publishing. Vite dan plugin React berada di dependencies frontend agar tetap tersedia saat NODE_ENV=production atau --omit=dev. Tetap gunakan root repository `./` dan entry `backend/src/server.js`. Jangan aktifkan `ignore-scripts` pada instalasi, karena itu menonaktifkan postinstall. Log instalasi harus menampilkan `postinstall`, `vite build`, dan `dist/index.html`. Gunakan Node.js 24 seperti konfigurasi deployment saat ini (Vite memerlukan Node 20.19+ atau 22.12+).
