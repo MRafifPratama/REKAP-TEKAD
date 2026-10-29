@@ -1,3 +1,5 @@
+import ErrorDialog from "./ErrorDialog.jsx";
+import { installValidationPopup } from "./lib/validationPopup.js";
 import { recordBody, receiptsOf, aidTypes } from "./lib/receipts.js";
 import UserRecordPage from "./UserRecordPage.jsx";
 import "@fontsource/dm-sans/latin-400.css";
@@ -61,6 +63,7 @@ import {
   UserForm,
   Profile,
   Detail,
+  ResetPasswordForm,
 } from "./components.jsx";
 function App() {
   const [user, setUser] = useState(null),
@@ -69,6 +72,7 @@ function App() {
     [records, setRecords] = useState([]),
     [logs, setLogs] = useState([]),
     [users, setUsers] = useState([]),
+    [popupError, setPopupError] = useState(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [modal, setModal] = useState(null),
@@ -80,7 +84,23 @@ function App() {
     [recordLoadState, setRecordLoadState] = useState("loading"),
     [additionalCount, setAdditionalCount] = useState(0),
     [smallScreen, setSmallScreen] = useState(false);
+  useEffect(() => {
+    if (user?.role === "user" && error) {
+      setPopupError({ message: error });
+      setError("");
+    }
+  }, [error, user?.role]);
+  useEffect(() => {
+    if (user?.role !== "user") return;
+    return installValidationPopup(document);
+  }, [user?.role]);
+  useEffect(() => {
+    const show = (event) => setPopupError(event.detail);
+    window.addEventListener("tekad:input-error", show);
+    return () => window.removeEventListener("tekad:input-error", show);
+  }, []);
   function enterAccount(account) {
+    setPopupError(null);
     setPage(account.role === "admin" ? "dashboard" : "form");
     setUser(account);
   }
@@ -468,7 +488,7 @@ function App() {
               </button>
             )}
           </div>
-          {error && (
+          {error && user.role === "admin" && (
             <div role="alert" className="alert error">
               {error}
               <button onClick={() => setError("")} aria-label="Tutup pesan">
@@ -925,6 +945,21 @@ function App() {
                               >
                                 <Pencil size={17} />
                               </button>
+                              {u.role === "user" && (
+                                <button
+                                  aria-label="Reset password pengguna"
+                                  title="Reset password"
+                                  onClick={() => {
+                                    setError("");
+                                    setModal({
+                                      type: "resetPassword",
+                                      value: u,
+                                    });
+                                  }}
+                                >
+                                  <KeyRound size={17} />
+                                </button>
+                              )}
                               <button
                                 aria-label="Hapus pengguna"
                                 onClick={() =>
@@ -1039,6 +1074,7 @@ function App() {
                       user: modal.value.id
                         ? "Edit pengguna"
                         : "Tambah pengguna",
+                      resetPassword: "Reset password pengguna",
                       detail: "Detail BUMDes",
                       log: "Detail aktivitas",
                       deleteRecord: "Hapus data BUMDes",
@@ -1051,7 +1087,7 @@ function App() {
                 <X />
               </button>
             </header>
-            {error && (
+            {error && user.role === "admin" && (
               <div role="alert" className="alert error">
                 {error}
               </div>
@@ -1070,6 +1106,25 @@ function App() {
                     "Data BUMDes tersimpan. Unggah lampiran melalui detail data.",
                   );
                   if (ok) setModal(null);
+                }}
+              />
+            )}
+            {modal.type === "resetPassword" && (
+              <ResetPasswordForm
+                user={modal.value}
+                busy={busy}
+                save={async (value) => {
+                  if (
+                    await action(
+                      () =>
+                        api("/users/" + modal.value.id + "/password", {
+                          method: "PUT",
+                          body: value,
+                        }),
+                      "Password pengguna berhasil direset. Semua sesinya telah diakhiri.",
+                    )
+                  )
+                    setModal(null);
                 }}
               />
             )}
@@ -1147,6 +1202,13 @@ function App() {
             )}
           </section>
         </div>
+      )}
+      {popupError && (
+        <ErrorDialog
+          message={popupError.message}
+          focusTarget={popupError.focusTarget}
+          onDismiss={() => setPopupError(null)}
+        />
       )}
     </div>
   );

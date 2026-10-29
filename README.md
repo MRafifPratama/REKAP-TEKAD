@@ -148,3 +148,9 @@ Penerimaan disimpan pada `records.data.receipts` dalam kolom JSON yang sudah ada
 Penerimaan lama tetap ditampilkan sebagai satu baris tanpa mengarang jenis bantuan. Saat menyimpan perubahan berikutnya, pengguna wajib memilih jenis yang benar, mengisi keterangan, dan mengunggah bukti PDF untuk mengaitkannya. Lampiran lama tetap tersedia dan tidak dihapus otomatis. Bukti aktif tidak dapat dihapus melalui daftar lampiran; ganti bukti melalui formulir penerimaan. Penerimaan yang sudah tersimpan tidak dapat dihapus dari formulir. Bukti lama yang diganti tetap tersimpan sebagai lampiran sampai dihapus secara eksplisit.
 
 `npm test` mencakup bukti wajib per penerimaan, isolasi bukti antar BUMDes, agregasi nominal, transaksi dua bukti, pembatalan transaksi dan pembersihan disk jika bukti kedua gagal. Pengujian transaksi memakai pengganti koneksi database; tidak mengubah data operasional. Skrip `check-upload.js` memeriksa alur foto melalui HTTP; PDF penerimaan diuji bersama transaksi formulir.
+
+## Reset password pengguna oleh admin
+
+Pada Manajemen Pengguna, klik ikon kunci pada akun berperan pengguna. Isi password baru dan konfirmasi (minimal 12 karakter, huruf besar, huruf kecil, angka). Endpoint PUT `/api/users/:id/password` hanya dapat diakses admin. Reset tidak mengaktifkan akun nonaktif, mengakhiri seluruh sesi akun target, dan mencatat admin pelaku tanpa menyimpan password/hash pada log. Akun admin mengganti password sendiri melalui Profil. Tidak ada perubahan schema SQL.
+
+Kesalahan input pada akun pengguna tampil sebagai dialog di dalam halaman aplikasi, termasuk validasi isian wajib/format HTML, validasi ukuran berkas, dan pesan penolakan backend. Beberapa isian tidak valid dikelompokkan dalam satu dialog, lalu fokus diarahkan ke isian pertama setelah dialog ditutup. Dialog mendukung tombol Mengerti, tombol tutup, dan Escape.

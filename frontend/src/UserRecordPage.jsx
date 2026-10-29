@@ -1,5 +1,6 @@
+import { showInputError } from "./lib/inputError.js";
 import { recordBody } from "./lib/receipts.js";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { RecordForm, Detail } from "./components.jsx";
 import { emptyRecord } from "./lib/model.js";
@@ -15,6 +16,12 @@ export default function UserRecordPage({
 }) {
   const [pendingFiles, setPendingFiles] = useState({});
   const [fileError, setFileError] = useState("");
+  useEffect(() => {
+    if (fileError) {
+      showInputError(fileError);
+      setFileError("");
+    }
+  }, [fileError]);
   const regionKeys = [
     "province",
     "regency",
@@ -171,7 +178,6 @@ export default function UserRecordPage({
                   )}
                 </label>
               ))}
-              {fileError && <p role="alert">{fileError}</p>}
             </div>
           )}
         </RecordForm>

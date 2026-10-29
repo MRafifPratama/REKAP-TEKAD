@@ -1,3 +1,4 @@
+import { showInputError } from "./lib/inputError.js";
 import { aidTypes, receiptsOf } from "./lib/receipts.js";
 import { RegionFields } from "./RegionFields.jsx";
 import React, { useState, useEffect } from "react";
@@ -611,6 +612,12 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
     [kind, setKind] = useState("organization"),
     [file, setFile] = useState(null),
     [err, setErr] = useState("");
+  useEffect(() => {
+    if (err) {
+      showInputError(err);
+      setErr("");
+    }
+  }, [err]);
   async function load() {
     try {
       setFiles(await api("/records/" + record.id + "/files"));
@@ -694,7 +701,7 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
         PNG / JPG / JPEG untuk foto. Bukti penerimaan hanya PDF. Maksimal 2 MB
         per berkas; dikompres otomatis hingga maksimal 1 MB sebelum disimpan.
       </p>
-      {err && <div className="alert error">{err}</div>}
+
       <div className="file-list">
         {files.map((f) => (
           <div key={f.id}>
@@ -828,4 +835,70 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
   );
 }
 
-export { Auth, Brand, Empty, Badge, RecordForm, UserForm, Profile, Detail };
+function ResetPasswordForm({ user, save, busy }) {
+  const [value, setValue] = useState({ newPassword: "", confirmPassword: "" });
+  const [show, setShow] = useState(false);
+  return (
+    <form
+      className="modal-body form-stack"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save(value);
+      }}
+    >
+      <p>
+        Reset password untuk{" "}
+        <strong>
+          {user.fullName} (@{user.username})
+        </strong>
+        . Seluruh sesi login pengguna akan diakhiri.
+      </p>
+      <Field
+        label="Password baru"
+        type={show ? "text" : "password"}
+        autoComplete="new-password"
+        minLength={12}
+        maxLength={72}
+        value={value.newPassword}
+        onChange={(newPassword) => setValue({ ...value, newPassword })}
+      />
+      <Field
+        label="Konfirmasi password baru"
+        type={show ? "text" : "password"}
+        autoComplete="new-password"
+        minLength={12}
+        maxLength={72}
+        value={value.confirmPassword}
+        onChange={(confirmPassword) => setValue({ ...value, confirmPassword })}
+      />
+      <label>
+        <input
+          type="checkbox"
+          checked={show}
+          onChange={(e) => setShow(e.target.checked)}
+        />{" "}
+        Tampilkan password
+      </label>
+      <p className="hint">
+        Minimal 12 karakter, mengandung huruf besar, huruf kecil, dan angka.
+        Sampaikan password baru kepada pengguna melalui saluran pribadi.
+      </p>
+      <button className="primary" disabled={busy}>
+        <KeyRound size={17} />
+        {busy ? "Mereset…" : "Reset password pengguna"}
+      </button>
+    </form>
+  );
+}
+
+export {
+  Auth,
+  Brand,
+  Empty,
+  Badge,
+  RecordForm,
+  UserForm,
+  Profile,
+  Detail,
+  ResetPasswordForm,
+};

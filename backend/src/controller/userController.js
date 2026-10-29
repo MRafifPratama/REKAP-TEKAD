@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { profile, registration } from "../utils/validation.js";
+import { profile, registration, password } from "../utils/validation.js";
 import { resolveRegion } from "../utils/regions.js";
 import { audit } from "../utils/audit.js";
 import { transaction } from "../utils/transaction.js";
@@ -106,4 +106,44 @@ export const remove = async (req, res) => {
     });
   });
   res.json({ ok: true });
+};
+
+export const resetPassword = async (req, res) => {
+  const input = z
+    .object({ newPassword: password, confirmPassword: z.string() })
+    .refine((v) => v.newPassword === v.confirmPassword, {
+      message: "Konfirmasi password tidak sama",
+      path: ["confirmPassword"],
+    })
+    .parse(req.body);
+  await transaction(async (c) => {
+    const [rows] = await UserModel.findByIdForUpdate([req.params.id], c);
+    if (!rows.length)
+      throw Object.assign(new Error("Pengguna tidak ditemukan"), {
+        status: 404,
+      });
+    if (rows[0].role !== "user")
+      throw Object.assign(
+        new Error(
+          "Reset ini hanya untuk akun pengguna. Admin mengganti password melalui profil sendiri.",
+        ),
+        { status: 400 },
+      );
+    await UserModel.updatePassword(
+      [await bcrypt.hash(input.newPassword, 12), req.params.id],
+      c,
+    );
+    await SessionModel.deleteForUser([req.params.id], c);
+    await audit(
+      c,
+      req.user.id,
+      "Reset password pengguna",
+      "pengguna",
+      req.params.id,
+    );
+  });
+  res.json({
+    message:
+      "Password pengguna berhasil direset. Seluruh sesi pengguna telah diakhiri.",
+  });
 };

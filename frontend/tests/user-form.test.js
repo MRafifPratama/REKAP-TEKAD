@@ -4,7 +4,7 @@ import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-let server, Page;
+let server, Page, ErrorDialog;
 before(async () => {
   const root = fileURLToPath(new URL("../", import.meta.url));
   server = await createServer({
@@ -14,6 +14,7 @@ before(async () => {
     appType: "custom",
   });
   Page = (await server.ssrLoadModule("/src/UserRecordPage.jsx")).default;
+  ErrorDialog = (await server.ssrLoadModule("/src/ErrorDialog.jsx")).default;
 });
 after(async () => {
   await server?.close();
@@ -118,4 +119,19 @@ test("Multiple receipts display their aid types, required proof and descriptions
   ])
     assert.ok(html.includes(label));
   assert.ok((html.match(/accept=".pdf"/g) || []).length >= 2);
+});
+
+test("Input errors render an in-page accessible dialog with close controls and escaped text", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ErrorDialog, {
+      message: "Email salah <script>test</script>",
+      onDismiss: () => {},
+    }),
+  );
+  assert.match(html, /role="alertdialog"/);
+  assert.match(html, /aria-labelledby="validation-title"/);
+  assert.match(html, /Mengerti/);
+  assert.match(html, /Tutup pesan kesalahan/);
+  assert.ok(!html.includes("<script>"));
+  assert.match(html, /&lt;script&gt;/);
 });
