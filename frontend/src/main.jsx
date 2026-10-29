@@ -1,3 +1,4 @@
+import { recordBody, receiptsOf, aidTypes } from "./lib/receipts.js";
 import UserRecordPage from "./UserRecordPage.jsx";
 import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
@@ -280,6 +281,7 @@ function App() {
         "Status",
         "Tanggal",
         "Jumlah",
+        "Rincian penerimaan",
       ],
       ...filtered.map((r) => [
         r.data.name,
@@ -290,6 +292,12 @@ function App() {
         r.data.received ? "Sudah menerima" : "Belum menerima",
         r.data.receivedDate,
         r.data.amount,
+        receiptsOf(r.data)
+          .map(
+            (receipt) =>
+              `${aidTypes[receipt.type] || "Jenis belum dilengkapi"} | ${receipt.date} | ${receipt.amount} | ${receipt.description || "Keterangan belum dilengkapi"}`,
+          )
+          .join("; "),
       ]),
     ];
     const csv =
@@ -1057,7 +1065,7 @@ function App() {
                     () =>
                       api("/records" + (v.id ? "/" + v.id : ""), {
                         method: v.id ? "PUT" : "POST",
-                        body: v,
+                        body: recordBody(v),
                       }),
                     "Data BUMDes tersimpan. Unggah lampiran melalui detail data.",
                   );

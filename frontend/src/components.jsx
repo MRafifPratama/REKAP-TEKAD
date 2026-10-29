@@ -1,3 +1,4 @@
+import { aidTypes, receiptsOf } from "./lib/receipts.js";
 import { RegionFields } from "./RegionFields.jsx";
 import React, { useState, useEffect } from "react";
 import {
@@ -255,14 +256,24 @@ function Badge({ received }) {
   );
 }
 function RecordForm({ value, save, busy, embedded = false, children }) {
-  const [v, set] = useState(value),
+  const [v, set] = useState(() => ({ ...value, receipts: receiptsOf(value) })),
     s = (k, x) => set({ ...v, [k]: x });
   return (
     <form
       className="modal-body form-grid"
       onSubmit={(e) => {
         e.preventDefault();
-        save(v);
+        const receipts = v.receipts || [];
+        save({
+          ...v,
+          received: receipts.length > 0,
+          amount: receipts.reduce((sum, r) => sum + Number(r.amount), 0),
+          receivedDate:
+            receipts
+              .map((r) => r.date)
+              .sort()
+              .at(-1) || "",
+        });
       }}
     >
       <h3 className="form-section">
@@ -311,44 +322,141 @@ function RecordForm({ value, save, busy, embedded = false, children }) {
       <h3 className="form-section">
         03 <span>Penerimaan bantuan TEKAD 2026</span>
       </h3>
-      <label className="field wide">
-        Status penerimaan
-        <select
-          value={String(v.received)}
-          onChange={(e) =>
-            set({
-              ...v,
-              received: e.target.value === "true",
-              ...(e.target.value === "false"
-                ? { amount: 0, receivedDate: "" }
-                : {}),
-            })
+      <div className="wide form-stack">
+        <p className="hint">
+          {v.receipts.length
+            ? "Catat setiap penerimaan secara terpisah. Setiap penerimaan wajib memiliki bukti PDF dan keterangan."
+            : "Belum ada penerimaan bantuan. Tambahkan penerimaan jika dana sudah diterima."}
+        </p>
+        {v.receipts.map((receipt, index) => {
+          const update = (patch) =>
+            s(
+              "receipts",
+              v.receipts.map((r) =>
+                r.id === receipt.id ? { ...r, ...patch } : r,
+              ),
+            );
+          return (
+            <section className="receipt-card form-grid" key={receipt.id}>
+              <h3 className="wide">Penerimaan {index + 1}</h3>
+              <label className="field wide">
+                Jenis bantuan
+                <select
+                  required
+                  value={receipt.type}
+                  disabled={busy}
+                  onChange={(e) => update({ type: e.target.value })}
+                >
+                  <option value="">Pilih jenis bantuan</option>
+                  {Object.entries(aidTypes).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Field
+                label="Tanggal diterima"
+                type="date"
+                min="2026-01-01"
+                max={new Date().toISOString().slice(0, 10)}
+                value={receipt.date}
+                onChange={(date) => update({ date })}
+              />
+              <Field
+                label="Jumlah diterima (Rp)"
+                type="number"
+                min="1"
+                step="1"
+                value={receipt.amount}
+                onChange={(amount) => update({ amount })}
+              />
+              <label className="field wide">
+                Keterangan bukti
+                <textarea
+                  required
+                  maxLength={2000}
+                  value={receipt.description}
+                  onChange={(e) => update({ description: e.target.value })}
+                  placeholder="Jelaskan dokumen bukti penerimaan ini"
+                />
+              </label>
+              <label className="field wide">
+                {receipt.proofId
+                  ? "Ganti bukti penerimaan (opsional)"
+                  : "Bukti penerimaan (wajib)"}
+                <input
+                  type="file"
+                  accept=".pdf"
+                  required={!receipt.proofId && !receipt.file}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (
+                      file &&
+                      (file.size > 2 * 1024 * 1024 ||
+                        !/\.pdf$/i.test(file.name))
+                    ) {
+                      e.target.value = "";
+                      update({ file: null });
+                      e.target.setCustomValidity(
+                        "Bukti harus PDF maksimal 2 MB.",
+                      );
+                      e.target.reportValidity();
+                      return;
+                    }
+                    e.target.setCustomValidity("");
+                    update({ file });
+                  }}
+                />
+                <span className="hint">
+                  PDF maksimal 2 MB; dikompres hingga maksimal 1 MB.{" "}
+                  {receipt.file
+                    ? "Dipilih: " + receipt.file.name
+                    : receipt.proofId
+                      ? "Bukti sudah tersimpan."
+                      : "Belum ada bukti."}
+                </span>
+              </label>
+              {!receiptsOf(value).some((r) => r.id === receipt.id) && (
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={busy}
+                  onClick={() =>
+                    s(
+                      "receipts",
+                      v.receipts.filter((r) => r.id !== receipt.id),
+                    )
+                  }
+                >
+                  Batalkan penerimaan ini
+                </button>
+              )}
+            </section>
+          );
+        })}
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy || v.receipts.length >= 20}
+          onClick={() =>
+            s("receipts", [
+              ...v.receipts,
+              {
+                id: crypto.randomUUID(),
+                type: "",
+                date: "",
+                amount: 0,
+                description: "",
+                proofId: "",
+              },
+            ])
           }
         >
-          <option value="false">Belum menerima</option>
-          <option value="true">Sudah menerima</option>
-        </select>
-      </label>
-      {v.received && (
-        <>
-          <Field
-            label="Tanggal diterima"
-            type="date"
-            min="2026-01-01"
-            max={new Date().toISOString().slice(0, 10)}
-            value={v.receivedDate}
-            onChange={(x) => s("receivedDate", x)}
-          />
-          <Field
-            label="Jumlah diterima (Rp)"
-            type="number"
-            min="1"
-            step="1"
-            value={v.amount}
-            onChange={(x) => s("amount", x)}
-          />
-        </>
-      )}
+          Tambah penerimaan lain
+        </button>
+      </div>
       <div className="hint wide">
         {embedded
           ? "Lampiran dapat dipilih saat mengisi formulir pertama kali. Setelah data tersimpan, kelola lampiran melalui bagian dokumentasi di bawah."
@@ -563,6 +671,24 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
           </a>
         </>
       )}
+      <h3 className="attachment-heading">Rincian penerimaan bantuan</h3>
+      {receiptsOf(d).map((r, index) => (
+        <section className="receipt-card" key={r.id}>
+          <h4>
+            Penerimaan {index + 1} ·{" "}
+            {aidTypes[r.type] || "Jenis belum dilengkapi (data lama)"}
+          </h4>
+          <p>
+            {r.date} · {money(r.amount)}
+          </p>
+          <p>Keterangan bukti: {r.description || "Belum dilengkapi"}</p>
+          <p className="hint">
+            {r.proofId
+              ? "Bukti tersimpan, tersedia pada daftar lampiran di bawah."
+              : "Bukti belum dikaitkan. Lengkapi melalui formulir BUMDes."}
+          </p>
+        </section>
+      ))}
       <h3 className="attachment-heading">Dokumentasi & bukti penerimaan</h3>
       <p className="hint">
         PNG / JPG / JPEG untuk foto. Bukti penerimaan hanya PDF. Maksimal 2 MB
@@ -575,6 +701,13 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
             <FileText size={21} />
             <span>
               <strong>{f.filename}</strong>
+              {receiptsOf(d)
+                .filter((r) => r.proofId === f.id)
+                .map((r) => (
+                  <small key={r.id}>
+                    {aidTypes[r.type]} · {r.date} · {r.description}
+                  </small>
+                ))}
               <small>
                 {
                   {
@@ -599,6 +732,12 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
               <Download size={18} />
             </button>
             <button
+              disabled={receiptsOf(d).some((r) => r.proofId === f.id)}
+              title={
+                receiptsOf(d).some((r) => r.proofId === f.id)
+                  ? "Ganti bukti melalui formulir penerimaan"
+                  : "Hapus lampiran"
+              }
               aria-label="Hapus lampiran"
               onClick={async () => {
                 if (window.confirm("Hapus lampiran ini?")) {
@@ -621,6 +760,10 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
           sudah diterima.
         </p>
       )}
+      <p className="hint">
+        Bukti setiap penerimaan beserta keterangannya dikelola melalui formulir
+        BUMDes.
+      </p>
       <form
         className="upload-form"
         onSubmit={async (e) => {
@@ -666,7 +809,6 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
         >
           <option value="organization">Bagan pengurus</option>
           <option value="building">Foto bangunan</option>
-          <option value="proof">Bukti penerimaan</option>
         </select>
         <input
           key={kind}

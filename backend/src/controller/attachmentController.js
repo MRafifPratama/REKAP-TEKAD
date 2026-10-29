@@ -17,6 +17,13 @@ export const upload = async (req, res) => {
       .parse(req.body.kind),
     f = req.file;
   if (!f) return res.status(400).json({ message: "Pilih berkas" });
+  if (kind === "proof")
+    return res
+      .status(400)
+      .json({
+        message:
+          "Unggah bukti beserta jenis penerimaan dan keterangannya melalui formulir BUMDes.",
+      });
   const b = f.buffer;
   const mime =
     b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
@@ -84,7 +91,14 @@ export const remove = async (req, res) => {
     if (!files.length)
       throw Object.assign(new Error("Berkas tidak ditemukan"), { status: 404 });
     const f = files[0];
-    await owned(c, f.record_id, req.user);
+    const record = await owned(c, f.record_id, req.user);
+    if (record.data.receipts?.some((r) => r.proofId === f.id))
+      throw Object.assign(
+        new Error(
+          "Bukti wajib tidak dapat dihapus. Ganti bukti melalui formulir penerimaan.",
+        ),
+        { status: 409 },
+      );
     await localStorage.remove(f.object_key);
     await AttachmentModel.remove([f.id], c);
     await audit(c, req.user.id, "Hapus lampiran", "bumdes", f.record_id, {

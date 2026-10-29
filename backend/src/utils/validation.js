@@ -1,3 +1,4 @@
+import { receiptSchema, summarize } from "./receipts.js";
 import { z } from "zod";
 const text = z.string().trim().min(1, "Wajib diisi").max(255);
 export const regionFields = {
@@ -55,6 +56,7 @@ export const record = z
         "Gunakan tautan Google Maps HTTPS",
       ),
     products: z.string().trim().min(1).max(5000),
+    receipts: z.array(receiptSchema).max(20).optional(),
     received: z.boolean(),
     receivedDate: z
       .string()
@@ -63,6 +65,15 @@ export const record = z
     amount: z.number().int().min(0).max(999999999999),
   })
   .superRefine((v, c) => {
+    if (v.receipts) {
+      if (new Set(v.receipts.map((r) => r.id)).size !== v.receipts.length)
+        c.addIssue({
+          code: "custom",
+          message: "ID penerimaan tidak boleh sama",
+          path: ["receipts"],
+        });
+      return;
+    }
     if (v.received && (!v.receivedDate || v.amount <= 0))
       c.addIssue({
         code: "custom",
@@ -89,4 +100,5 @@ export const record = z
         message: "Belum menerima: kosongkan tanggal dan jumlah",
         path: ["amount"],
       });
-  });
+  })
+  .transform(summarize);

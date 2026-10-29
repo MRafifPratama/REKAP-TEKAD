@@ -138,3 +138,13 @@ Jika halaman utama menampilkan JSON “Endpoint tidak ditemukan”, versi backen
 ### Hostinger Express tanpa kolom build command
 
 Root `package.json` memiliki `postinstall: npm run build`, sehingga langkah `npm install` pada deployment juga menghasilkan `frontend/dist` sebelum publishing. Vite dan plugin React berada di dependencies frontend agar tetap tersedia saat NODE_ENV=production atau --omit=dev. Tetap gunakan root repository `./` dan entry `backend/src/server.js`. Jangan aktifkan `ignore-scripts` pada instalasi, karena itu menonaktifkan postinstall. Log instalasi harus menampilkan `postinstall`, `vite build`, dan `dist/index.html`. Gunakan Node.js 24 seperti konfigurasi deployment saat ini (Vite memerlukan Node 20.19+ atau 22.12+).
+
+## Banyak penerimaan bantuan per BUMDes
+
+Satu akun tetap memiliki satu BUMDes, dengan hingga 20 baris penerimaan. Tombol Tambah penerimaan lain menambah jenis Demplot, RITD, atau Investment Fund; masing-masing memiliki tanggal 2026, nominal positif, keterangan bukti wajib (maksimal 2.000 karakter), dan bukti PDF sendiri. Batas 2 MB dan kompresi maksimal 1 MB tetap berlaku. Foto bagan/bangunan tetap di bagian dokumentasi.
+
+Penerimaan disimpan pada `records.data.receipts` dalam kolom JSON yang sudah ada; setiap baris memiliki ID stabil dan `proofId` yang menunjuk metadata `attachments`. Tidak perlu mengubah schema atau impor SQL ulang. Status menerima dan total nominal dihitung backend dari seluruh penerimaan; ekspor CSV menyertakan rincian jenis, tanggal, nominal, dan keterangan. Unggah bukti bersama formulir menggunakan multipart: field `data` berisi JSON, field file menggunakan ID penerimaan. Seluruh penerimaan, metadata bukti, dan log disimpan pada satu transaksi. Jika gagal, transaksi dibatalkan dan berkas baru dibersihkan.
+
+Penerimaan lama tetap ditampilkan sebagai satu baris tanpa mengarang jenis bantuan. Saat menyimpan perubahan berikutnya, pengguna wajib memilih jenis yang benar, mengisi keterangan, dan mengunggah bukti PDF untuk mengaitkannya. Lampiran lama tetap tersedia dan tidak dihapus otomatis. Bukti aktif tidak dapat dihapus melalui daftar lampiran; ganti bukti melalui formulir penerimaan. Penerimaan yang sudah tersimpan tidak dapat dihapus dari formulir. Bukti lama yang diganti tetap tersimpan sebagai lampiran sampai dihapus secara eksplisit.
+
+`npm test` mencakup bukti wajib per penerimaan, isolasi bukti antar BUMDes, agregasi nominal, transaksi dua bukti, pembatalan transaksi dan pembersihan disk jika bukti kedua gagal. Pengujian transaksi memakai pengganti koneksi database; tidak mengubah data operasional. Skrip `check-upload.js` memeriksa alur foto melalui HTTP; PDF penerimaan diuji bersama transaksi formulir.

@@ -1,3 +1,4 @@
+import { recordBody } from "./lib/receipts.js";
 import React, { useState } from "react";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { RecordForm, Detail } from "./components.jsx";
@@ -53,7 +54,7 @@ export default function UserRecordPage({
     await action(async () => {
       const result = await api("/records" + (value.id ? "/" + value.id : ""), {
         method: value.id ? "PUT" : "POST",
-        body: value,
+        body: recordBody(value),
       });
       const id = value.id || result.id;
       try {
@@ -126,7 +127,6 @@ export default function UserRecordPage({
               {[
                 ["organization", "Foto bagan pengurus"],
                 ["building", "Foto bangunan BUMDes"],
-                ["proof", "Bukti penerimaan"],
               ].map(([kind, label]) => (
                 <label className="field" key={kind}>
                   {label}

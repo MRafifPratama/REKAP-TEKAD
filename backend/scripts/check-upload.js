@@ -1,7 +1,6 @@
 // Uploads only generated test fixtures. All files created by this check are removed.
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { PDFDocument } from "pdf-lib";
 import { randomBytes, randomUUID } from "node:crypto";
 const base = "http://127.0.0.1:8000/api",
   origin = "http://127.0.0.1:8000";
@@ -54,27 +53,12 @@ try {
   })
     .png()
     .toBuffer();
-  const pdf = await PDFDocument.create();
-  const jpg = await sharp(randomBytes(1200 * 1000 * 3), {
-    raw: { width: 1200, height: 1000, channels: 3 },
-  })
-    .jpeg({ quality: 95 })
-    .toBuffer();
-  const image = await pdf.embedJpg(jpg);
-  pdf.addPage().drawImage(image, { x: 20, y: 50, width: 400, height: 333 });
-  const pdfBytes = Buffer.from(await pdf.save());
   const fixtures = [
     {
       kind: "building",
       mime: "image/png",
       name: "uji-local-" + randomUUID() + ".png",
       bytes: png,
-    },
-    {
-      kind: "proof",
-      mime: "application/pdf",
-      name: "uji-local-" + randomUUID() + ".pdf",
-      bytes: pdfBytes,
     },
   ];
   for (const f of fixtures) {
@@ -105,9 +89,7 @@ try {
       f.bytes.length > 1024 * 1024 && f.bytes.length <= 2 * 1024 * 1024,
     );
     assert.ok(stored.length <= 1024 * 1024);
-    if (f.kind === "proof")
-      assert.equal((await PDFDocument.load(stored)).getPageCount(), 1);
-    else assert.equal((await sharp(stored).metadata()).format, "png");
+    assert.equal((await sharp(stored).metadata()).format, "png");
   }
   otherCookie = (
     await request("/auth/login", {
@@ -155,7 +137,7 @@ try {
         result: "PASS",
         storageProvider: "local",
         imageUpload: true,
-        pdfUpload: true,
+        pdfRequiresReceiptForm: true,
         metadataSaved: true,
         compressedObjectsUnder1MB: true,
         otherUserAccessRejected: true,

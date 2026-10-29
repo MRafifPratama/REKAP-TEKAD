@@ -1566,3 +1566,13 @@ td small {
   outline: 2px solid #087ef2;
   outline-offset: -3px;
 }
+
+.receipt-card {
+  padding: 18px;
+  border: 1px solid #dfe7f1;
+  border-radius: 10px;
+  background: #f7fbff;
+  margin-bottom: 12px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
