@@ -29,7 +29,7 @@ export async function saveReceipts(c, recordId, data, old, files, written) {
     if (!file) {
       if (!prior?.proofId || receipt.proofId !== prior.proofId)
         throw reject(
-          "Setiap penerimaan wajib memiliki bukti PDF. Pilih bukti untuk penerimaan yang belum lengkap.",
+          "Setiap penerimaan wajib memiliki bukti PNG/JPG/JPEG/PDF. Pilih bukti untuk penerimaan yang belum lengkap.",
         );
       const [rows] = await AttachmentModel.findByIdForUpdate(
         [receipt.proofId],
@@ -43,22 +43,34 @@ export async function saveReceipts(c, recordId, data, old, files, written) {
         throw reject("Bukti penerimaan tidak ditemukan.");
       continue;
     }
-    if (file.buffer.subarray(0, 5).toString() !== "%PDF-")
-      throw reject("Bukti penerimaan hanya boleh PDF.");
-    const buffer = await compressUpload(file.buffer, "application/pdf");
+    const b = file.buffer;
+    const mime =
+      b.subarray(0, 5).toString() === "%PDF-"
+        ? "application/pdf"
+        : b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff
+          ? "image/jpeg"
+          : b
+                .subarray(0, 8)
+                .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+            ? "image/png"
+            : null;
+    const extension =
+      mime === "application/pdf"
+        ? /\.pdf$/i
+        : mime === "image/jpeg"
+          ? /\.jpe?g$/i
+          : /\.png$/i;
+    if (!mime || !extension.test(file.originalname))
+      throw reject(
+        "Bukti penerimaan harus PNG, JPG, JPEG, atau PDF dengan isi dan ekstensi yang sesuai.",
+      );
+    const buffer = await compressUpload(file.buffer, mime);
     const id = randomUUID();
-    const key = `assets/documents/${recordId}/${id}`;
+    const key = `assets/${mime === "application/pdf" ? "documents" : "images"}/${recordId}/${id}`;
     await localStorage.put(key, buffer);
     written.push(key);
     await AttachmentModel.create(
-      [
-        id,
-        recordId,
-        "proof",
-        key,
-        file.originalname.slice(0, 255),
-        "application/pdf",
-      ],
+      [id, recordId, "proof", key, file.originalname.slice(0, 255), mime],
       c,
     );
     receipt.proofId = id;

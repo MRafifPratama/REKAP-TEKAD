@@ -118,7 +118,7 @@ test("Multiple receipts display their aid types, required proof and descriptions
     "Keterangan bukti",
   ])
     assert.ok(html.includes(label));
-  assert.ok((html.match(/accept=".pdf"/g) || []).length >= 2);
+  assert.ok((html.match(/accept=".png,.jpg,.jpeg,.pdf"/g) || []).length >= 2);
 });
 
 test("Input errors render an in-page accessible dialog with close controls and escaped text", () => {

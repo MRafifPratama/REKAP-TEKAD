@@ -39,7 +39,7 @@ export const upload = async (req, res) => {
   )
     return res.status(400).json({
       message:
-        "Foto hanya PNG/JPG/JPEG; bukti penerimaan hanya PDF. Maksimal 2 MB per berkas.",
+        "Foto hanya PNG/JPG/JPEG; bukti penerimaan PNG/JPG/JPEG/PDF. Maksimal 2 MB per berkas.",
     });
   const id = randomUUID(),
     key = `assets/${mime === "application/pdf" ? "documents" : "images"}/${req.params.id}/${id}`;

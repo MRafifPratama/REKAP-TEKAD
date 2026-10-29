@@ -127,9 +127,8 @@ export default function UserRecordPage({
               <h3>Dokumentasi dan bukti penerimaan</h3>
               <p className="hint">
                 Pilih lampiran sekarang. Berkas akan diunggah saat Anda menekan
-                Simpan data BUMDes. Foto: PNG/JPG/JPEG. Bukti penerimaan: PDF.
-                Maksimal unggahan 2 MB per berkas; dikompres otomatis hingga
-                maksimal 1 MB sebelum disimpan.
+                Simpan data BUMDes. Foto: PNG/JPG/JPEG. Bukti penerimaan:
+                PNG/JPG/JPEG/PDF. Maksimal unggahan 2 MB per berkas.
               </p>
               {[
                 ["organization", "Foto bagan pengurus"],
@@ -158,7 +157,7 @@ export default function UserRecordPage({
                       ) {
                         event.target.value = "";
                         setFileError(
-                          "Foto hanya PNG/JPG/JPEG; bukti penerimaan hanya PDF.",
+                          "Foto hanya PNG/JPG/JPEG; bukti penerimaan PNG/JPG/JPEG/PDF.",
                         );
                         return;
                       }

@@ -326,7 +326,7 @@ function RecordForm({ value, save, busy, embedded = false, children }) {
       <div className="wide form-stack">
         <p className="hint">
           {v.receipts.length
-            ? "Catat setiap penerimaan secara terpisah. Setiap penerimaan wajib memiliki bukti PDF dan keterangan."
+            ? "Catat setiap penerimaan secara terpisah. Setiap penerimaan wajib memiliki bukti PNG/JPG/JPEG/PDF dan keterangan."
             : "Belum ada penerimaan bantuan. Tambahkan penerimaan jika dana sudah diterima."}
         </p>
         {v.receipts.map((receipt, index) => {
@@ -388,7 +388,7 @@ function RecordForm({ value, save, busy, embedded = false, children }) {
                   : "Bukti penerimaan (wajib)"}
                 <input
                   type="file"
-                  accept=".pdf"
+                  accept=".png,.jpg,.jpeg,.pdf"
                   required={!receipt.proofId && !receipt.file}
                   disabled={busy}
                   onChange={(e) => {
@@ -396,12 +396,12 @@ function RecordForm({ value, save, busy, embedded = false, children }) {
                     if (
                       file &&
                       (file.size > 2 * 1024 * 1024 ||
-                        !/\.pdf$/i.test(file.name))
+                        !/\.(png|jpe?g|pdf)$/i.test(file.name))
                     ) {
                       e.target.value = "";
                       update({ file: null });
                       e.target.setCustomValidity(
-                        "Bukti harus PDF maksimal 2 MB.",
+                        "Bukti harus PNG, JPG, JPEG, atau PDF maksimal 2 MB.",
                       );
                       e.target.reportValidity();
                       return;
@@ -411,7 +411,7 @@ function RecordForm({ value, save, busy, embedded = false, children }) {
                   }}
                 />
                 <span className="hint">
-                  PDF maksimal 2 MB; dikompres hingga maksimal 1 MB.{" "}
+                  PNG/JPG/JPEG/PDF maksimal 2 MB.{" "}
                   {receipt.file
                     ? "Dipilih: " + receipt.file.name
                     : receipt.proofId
@@ -698,8 +698,8 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
       ))}
       <h3 className="attachment-heading">Dokumentasi & bukti penerimaan</h3>
       <p className="hint">
-        PNG / JPG / JPEG untuk foto. Bukti penerimaan hanya PDF. Maksimal 2 MB
-        per berkas; dikompres otomatis hingga maksimal 1 MB sebelum disimpan.
+        PNG / JPG / JPEG untuk foto. Bukti penerimaan: PNG/JPG/JPEG/PDF.
+        Maksimal 2 MB per berkas.
       </p>
 
       <div className="file-list">
@@ -780,9 +780,11 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
             return;
           }
           if (
-            !(kind === "proof" ? /\.pdf$/i : /\.(png|jpe?g)$/i).test(file.name)
+            !(
+              kind === "proof" ? /\.(png|jpe?g|pdf)$/i : /\.(png|jpe?g)$/i
+            ).test(file.name)
           ) {
-            setErr("Foto hanya PNG/JPG/JPEG; bukti penerimaan hanya PDF.");
+            setErr("Foto hanya PNG/JPG/JPEG; bukti penerimaan PNG/JPG/JPEG/PDF.");
             return;
           }
           setErr("");
@@ -821,7 +823,7 @@ function Detail({ record, action, busy, attachmentsOnly = false }) {
           key={kind}
           aria-label="Pilih lampiran"
           type="file"
-          accept={kind === "proof" ? ".pdf" : ".jpg,.jpeg,.png"}
+          accept={kind === "proof" ? ".png,.jpg,.jpeg,.pdf" : ".jpg,.jpeg,.png"}
           required
           onChange={(e) => setFile(e.target.files[0])}
         />

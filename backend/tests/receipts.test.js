@@ -115,3 +115,61 @@ test("Legacy receipt is retained without inventing an aid type", () => {
   assert.equal(legacy[0].amount, 500);
   assert.equal(legacy[0].type, "");
 });
+
+test("Receipt proof accepts PNG, JPG and JPEG with matching MIME and image storage paths", async () => {
+  const sharp = (await import("sharp")).default;
+  for (const ext of ["png", "jpg", "jpeg"]) {
+    let image = sharp({
+      create: { width: 40, height: 40, channels: 3, background: "blue" },
+    });
+    const buffer = await (
+      ext === "png" ? image.png() : image.jpeg()
+    ).toBuffer();
+    const r = receipt(),
+      written = [],
+      inserts = [];
+    try {
+      await saveReceipts(
+        {
+          execute: async (sql, values) => {
+            inserts.push(values);
+            return [{ affectedRows: 1 }];
+          },
+        },
+        99999999,
+        { receipts: [r] },
+        null,
+        [{ fieldname: r.id, originalname: "bukti." + ext, buffer }],
+        written,
+      );
+      assert.equal(inserts[0][5], ext === "png" ? "image/png" : "image/jpeg");
+      assert.match(written[0], /^assets\/images\//);
+      assert.ok((await localStorage.get(written[0])).length <= 1048576);
+      await assert.rejects(
+        saveReceipts(
+          {},
+          99999999,
+          { receipts: [receipt()] },
+          null,
+          [{ fieldname: "invalid", originalname: "bukti.exe", buffer }],
+          [],
+        ),
+        { status: 400 },
+      );
+      const other = receipt();
+      await assert.rejects(
+        saveReceipts(
+          {},
+          99999999,
+          { receipts: [other] },
+          null,
+          [{ fieldname: other.id, originalname: "bukti.pdf", buffer }],
+          [],
+        ),
+        { status: 400 },
+      );
+    } finally {
+      await Promise.all(written.map((key) => localStorage.remove(key)));
+    }
+  }
+});
