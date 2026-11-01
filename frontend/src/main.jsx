@@ -1,3 +1,5 @@
+import AidCharts from "./AidCharts.jsx";
+import { aidSummary, matchesAidType } from "./lib/aidSummary.js";
 import ErrorDialog from "./ErrorDialog.jsx";
 import { installValidationPopup } from "./lib/validationPopup.js";
 import { recordBody, receiptsOf, aidTypes } from "./lib/receipts.js";
@@ -79,6 +81,7 @@ function App() {
     [busy, setBusy] = useState(false),
     [query, setQuery] = useState(""),
     [status, setStatus] = useState("all"),
+    [aidType, setAidType] = useState("all"),
     [mobile, setMobile] = useState(false),
     [health, setHealth] = useState(null),
     [recordLoadState, setRecordLoadState] = useState("loading"),
@@ -273,6 +276,7 @@ function App() {
     filtered = records.filter(
       (r) =>
         (status === "all" || String(r.data.received) === status) &&
+        matchesAidType(r.data, aidType) &&
         [r.data.name, r.data.province, r.data.regency, r.data.village].some(
           (v) => v.toLowerCase().includes(query.toLowerCase()),
         ),
@@ -598,6 +602,49 @@ function App() {
                   </article>
                 ))}
               </section>
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <h3>Penerima berdasarkan jenis bantuan</h3>
+                    <p>
+                      Jumlah BUMDes unik per jenis. Satu BUMDes dapat menerima
+                      lebih dari satu jenis bantuan.
+                    </p>
+                  </div>
+                </div>
+                <div className="aid-stats">
+                  {aidSummary(records).map((item) => (
+                    <article className="stat" key={item.type}>
+                      <span>{item.label}</span>
+                      <strong>{item.recipients}</strong>
+                      <small>
+                        BUMDes penerima · {item.receipts} penerimaan
+                      </small>
+                      <p>{money(item.amount)}</p>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setAidType(item.type);
+                          setStatus("all");
+                          setQuery("");
+                          go("records");
+                        }}
+                      >
+                        Lihat penerima <ChevronRight size={16} />
+                      </button>
+                    </article>
+                  ))}
+                </div>
+                {records.some((r) =>
+                  matchesAidType(r.data, "unclassified"),
+                ) && (
+                  <p className="hint padded">
+                    Sebagian data lama belum memiliki jenis bantuan. Data
+                    tersebut tersedia melalui filter “Jenis belum dilengkapi”.
+                  </p>
+                )}
+              </section>
+              <AidCharts records={records} />
               <section className="charts">
                 <article className="panel">
                   <div className="panel-heading">
@@ -731,7 +778,7 @@ function App() {
                     {page === "dashboard"
                       ? "Data BUMDes terbaru"
                       : "Daftar data BUMDes"}{" "}
-                    <span className="count">{records.length}</span>
+                    <span className="count">{filtered.length}</span>
                   </h3>
                   <p>
                     {page === "dashboard"
@@ -769,6 +816,19 @@ function App() {
                   <option value="true">Sudah menerima</option>
                   <option value="false">Belum menerima</option>
                 </select>
+                <select
+                  aria-label="Filter jenis bantuan"
+                  value={aidType}
+                  onChange={(e) => setAidType(e.target.value)}
+                >
+                  <option value="all">Semua jenis bantuan</option>
+                  {Object.entries(aidTypes).map(([type, label]) => (
+                    <option key={type} value={type}>
+                      {label}
+                    </option>
+                  ))}
+                  <option value="unclassified">Jenis belum dilengkapi</option>
+                </select>
               </div>
               <p className="table-hint">
                 Geser tabel ke samping untuk melihat seluruh kolom.
@@ -785,6 +845,7 @@ function App() {
                       <th>NAMA BUMDES</th>
                       <th>WILAYAH</th>
                       <th>STATUS BANTUAN</th>
+                      <th>JENIS BANTUAN</th>
                       <th>JUMLAH DITERIMA</th>
                       <th>AKSI</th>
                     </tr>
@@ -812,6 +873,20 @@ function App() {
                         </td>
                         <td>
                           <Badge received={r.data.received} />
+                        </td>
+                        <td>
+                          {[
+                            ...new Set(
+                              receiptsOf(r.data).map(
+                                (receipt) =>
+                                  aidTypes[receipt.type] ||
+                                  "Jenis belum dilengkapi",
+                              ),
+                            ),
+                          ].map((label) => (
+                            <small key={label}>{label}</small>
+                          ))}
+                          {!receiptsOf(r.data).length && "—"}
                         </td>
                         <td className="amount">
                           {r.data.received ? money(r.data.amount) : "—"}

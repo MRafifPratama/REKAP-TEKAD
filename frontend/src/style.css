@@ -1632,3 +1632,56 @@ td small {
 .validation-dialog footer button {
   min-height: 44px;
 }
+
+.aid-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 20px 20px;
+}
+.aid-stats .stat {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.aid-stats .stat > span {
+  min-height: 3em;
+}
+.table-tools {
+  flex-wrap: wrap;
+}
+.table-tools select {
+  max-width: 100%;
+}
+@media (max-width: 800px) {
+  .aid-stats {
+    grid-template-columns: 1fr;
+  }
+  .aid-stats .stat > span {
+    min-height: 0;
+  }
+}
+
+.aid-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 20px 0;
+}
+.aid-charts > article {
+  min-width: 0;
+}
+.aid-chart-wide {
+  grid-column: 1 / -1;
+}
+.aid-charts details summary {
+  cursor: pointer;
+  color: #0879e5;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+@media (max-width: 800px) {
+  .aid-charts {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
