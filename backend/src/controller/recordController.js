@@ -66,19 +66,38 @@ export const create = (req, res) => save(req, res, false);
 export const update = (req, res) => save(req, res, true);
 export const remove = async (req, res) => {
   ensureCanDelete(req.user);
-  await transaction(async (c) => {
-    const old = await owned(c, req.params.id, req.user);
-    const [files] = await AttachmentModel.findIdsForRecord([old.id], c);
-    if (files.length)
-      throw Object.assign(
-        new Error("Hapus lampiran terlebih dahulu sebelum menghapus data."),
-        { status: 409 },
-      );
-    await RecordModel.remove([old.id], c);
-    await audit(c, req.user.id, "Hapus data", "bumdes", old.id, {
-      before: old.data,
+  const staged = [];
+  try {
+    await transaction(async (c) => {
+      const old = await owned(c, req.params.id, req.user);
+      const [files] = await AttachmentModel.findForDeletion([old.id], c);
+      for (const file of files) {
+        const pending = await localStorage.stageRemove(file.object_key);
+        if (pending) staged.push(pending);
+      }
+      await AttachmentModel.removeForRecord([old.id], c);
+      await RecordModel.remove([old.id], c);
+      await audit(c, req.user.id, "Hapus data", "bumdes", old.id, {
+        before: old.data,
+        attachments: files.map(({ id, filename }) => ({ id, filename })),
+      });
     });
-  });
+  } catch (error) {
+    const restored = await Promise.allSettled(
+      staged.map((file) => file.restore()),
+    );
+    if (restored.some((result) => result.status === "rejected"))
+      console.error(
+        "Gagal memulihkan lampiran setelah penghapusan dibatalkan.",
+      );
+    throw error;
+  }
+  // The database has committed. Quarantined files are no longer downloadable.
+  const cleaned = await Promise.allSettled(staged.map((file) => file.finish()));
+  if (cleaned.some((result) => result.status === "rejected"))
+    console.error(
+      "Pembersihan berkas .deleting- tertunda setelah penghapusan BUMDes.",
+    );
   res.json({ ok: true });
 };
 

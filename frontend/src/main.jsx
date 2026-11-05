@@ -1240,9 +1240,10 @@ function App() {
                   <strong>
                     {modal.value.data?.name || modal.value.fullName}
                   </strong>
-                  ? Data BUMDes yang dihapus tidak dapat dikembalikan.
-                  Penghapusan akun akan menutup akses dan mengarsipkan akun;
-                  data serta riwayat aktivitas tetap tersimpan.
+                  ?{" "}
+                  {modal.type === "deleteRecord"
+                    ? "Seluruh data BUMDes, penerimaan bantuan, foto, dan dokumen bukti terkait akan ikut dihapus. Tindakan ini tidak dapat dibatalkan. Riwayat aktivitas tetap tersimpan."
+                    : "Penghapusan akun akan menutup akses dan mengarsipkan akun; data serta riwayat aktivitas tetap tersimpan."}
                 </p>
                 <div className="form-actions">
                   <button className="secondary" onClick={() => setModal(null)}>
@@ -1270,7 +1271,9 @@ function App() {
                         setModal(null);
                     }}
                   >
-                    Hapus data
+                    {modal.type === "deleteRecord"
+                      ? "Hapus semua data dan lampiran"
+                      : "Hapus data"}
                   </button>
                 </div>
               </div>

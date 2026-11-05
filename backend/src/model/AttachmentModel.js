@@ -5,6 +5,18 @@ export function findIdsForRecord(values = [], connection = db) {
     values,
   );
 }
+export function findForDeletion(values = [], connection = db) {
+  return connection.execute(
+    "SELECT id,object_key,filename FROM attachments WHERE record_id=? FOR UPDATE",
+    values,
+  );
+}
+export function removeForRecord(values = [], connection = db) {
+  return connection.execute(
+    "DELETE FROM attachments WHERE record_id=?",
+    values,
+  );
+}
 export function findForRecord(values = [], connection = db) {
   return connection.execute(
     "SELECT id,kind,filename,created_at FROM attachments WHERE record_id=?",

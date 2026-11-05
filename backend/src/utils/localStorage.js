@@ -5,7 +5,9 @@ import {
   unlink,
   access,
   realpath,
+  rename,
 } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { storageRoot } from "../config/storage.js";
@@ -68,6 +70,21 @@ export function createLocalStorage(root) {
       } catch (error) {
         if (error.code !== "ENOENT") throw error;
       }
+    },
+    async stageRemove(key) {
+      const path = pathFor(key);
+      const staged = `${path}.deleting-${randomUUID()}`;
+      try {
+        await checkParent(path);
+        await rename(path, staged);
+      } catch (error) {
+        if (error.code === "ENOENT") return null;
+        throw error;
+      }
+      return {
+        restore: () => rename(staged, path),
+        finish: () => unlink(staged),
+      };
     },
   };
 }
